@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# CWJ-NUB · https://github.com/CWJ-NUB/trae-cn-multibox
 """Trae CN 多开启动台。双击运行，只用标准库。"""
 import base64
 import json
@@ -9,11 +10,15 @@ import subprocess
 import sys
 import threading
 import traceback
+import webbrowser
 from datetime import datetime
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 
+AUTHOR = "CWJ-NUB"
+REPO_URL = "https://github.com/" + AUTHOR + "/trae-cn-multibox"
+__author__ = AUTHOR
 APP_TITLE = "Trae CN 多账号启动台"
 BASE = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
 ROOT_DIR = os.path.join(BASE, "TraeCNProfiles")
@@ -125,12 +130,17 @@ HELP_TEXT = """Trae CN 多开 · 使用说明
   界面报错        看 %LOCALAPPDATA%\\TraeCNProfiles\\launcher.log
 
 这个工具不做什么
-  不读 storage.json，不解密凭据，不改机器码，不写注册表，不联网。
+  不读 storage.json，不解密凭据，不改机器码，不写注册表。除了你点「项目仓库」
+  时开一下浏览器，其余一律不联网，也不往任何地方发数据。
   登录全走官方客户端自己的界面。账号备注只是文本，不存 token / 密码 / Cookie。
   多账号本身踩服务条款灰线，账号异常自己担着。
 
   程序、说明、快捷方式创建器都在这一个 .pyw 里。把这一个文件单独拷到
   任何 Windows 机器上都能直接用，README / LICENSE 那些运行时不需要。
+
+  作者 CWJ-NUB
+  仓库 https://github.com/CWJ-NUB/trae-cn-multibox
+  界面标题右边、这个窗口底下都能点，点一下用系统浏览器打开。
 """
 
 
@@ -365,8 +375,17 @@ class App:
     def build_ui(self):
         header = tk.Frame(self.root, bg=BG)
         header.pack(fill="x", padx=16, pady=(14, 6))
-        tk.Label(header, text=APP_TITLE, bg=BG, fg=FG,
-                 font=("Microsoft YaHei", 15, "bold")).pack(anchor="w")
+        title_row = tk.Frame(header, bg=BG)
+        title_row.pack(fill="x")
+        tk.Label(title_row, text=APP_TITLE, bg=BG, fg=FG,
+                 font=("Microsoft YaHei", 15, "bold")).pack(side="left")
+        self.repo_link = tk.Label(title_row, text="by %s · 项目仓库 ↗" % AUTHOR,
+                                  bg=BG, fg=ACCENT, cursor="hand2",
+                                  font=("Microsoft YaHei", 9, "underline"))
+        self.repo_link.pack(side="right")
+        self.repo_link.bind("<Button-1>", lambda _e: self.open_repo())
+        self.repo_link.bind("<Enter>", lambda _e: self.repo_link.configure(fg="#9C5B41"))
+        self.repo_link.bind("<Leave>", lambda _e: self.repo_link.configure(fg=ACCENT))
         tk.Label(header, text="第 1 行是原来的账号，下面都是新加的隔离实例。",
                  bg=BG, fg=GREY, font=FONT).pack(anchor="w", pady=(4, 0))
 
@@ -484,8 +503,17 @@ class App:
         bar = tk.Frame(dlg, bg=BG)
         bar.pack(fill="x", padx=16, pady=(0, 14))
         ttk.Button(bar, text="打开配置目录", command=self.open_root_dir).pack(side="left")
+        ttk.Button(bar, text="%s · 项目仓库 ↗" % AUTHOR,
+                   command=self.open_repo).pack(side="left", padx=(6, 0))
         ttk.Button(bar, text="关闭", command=dlg.destroy).pack(side="right")
         dlg.bind("<Escape>", lambda _e: dlg.destroy())
+
+    def open_repo(self):
+        try:
+            webbrowser.open(REPO_URL)
+        except Exception as e:
+            log("open_repo: %r" % e)
+            messagebox.showerror(APP_TITLE, "浏览器没打开：%r\n\n地址：%s" % (e, REPO_URL))
 
     def open_root_dir(self):
         os.makedirs(ROOT_DIR, exist_ok=True)
