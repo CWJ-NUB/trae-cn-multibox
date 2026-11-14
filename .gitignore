@@ -1,4 +1,4 @@
-# Runtime artifacts. NEVER commit: may contain device ids / local paths.
+# 运行时产物，含设备号和本机路径，别提交
 debug.log
 *.log
 launcher.json
@@ -7,19 +7,19 @@ account-*/
 main-cwd/
 *.bak-*/
 
-# Temporary research / smoke-test scripts kept on this machine only
+# 本机临时脚本
 _*.py
 __pycache__/
 *.pyc
 *.pyo
 
-# Legacy multi-file edition (superseded by the single .pyw, kept locally)
+# 旧版多文件，本地留着，不进仓库
 GUI-GUIDE.md
 start-gui.cmd
 start-instance.cmd
 trae_launcher_gui.py
 
-# OS noise
+# 系统垃圾文件
 Thumbs.db
 Desktop.ini
 .DS_Store

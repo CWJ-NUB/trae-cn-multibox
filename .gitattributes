@@ -1,0 +1,3 @@
+# GitHub 把 .pyw 当 Python 源码显示，别归进 Other
+*.pyw linguist-language=Python
+*.pyw linguist-detectable=true

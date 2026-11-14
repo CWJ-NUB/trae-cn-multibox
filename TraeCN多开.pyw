@@ -1,17 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Trae CN multi-account launcher - SINGLE FILE edition.
-
-Double-click this .pyw on Windows. Python 3 + tkinter (standard library) only.
-Everything is here: the whole GUI, the built-in help text, the desktop shortcut
-creator. No .cmd, no .md, no third-party packages, no packaged exe.
-
-The "account" column is a plain text label for your own memory.
-This tool never reads, decrypts, or stores Trae login credentials.
-Each isolated instance is just the official client with its own --user-data-dir.
-
-Config stays at %LOCALAPPDATA%\\TraeCNProfiles\\launcher.json, so it is shared
-with the earlier multi-file version and existing instances are picked up.
-"""
+"""Trae CN 多开启动台。双击运行，只用标准库。"""
 import base64
 import json
 import os
@@ -76,98 +64,73 @@ DEFAULT_DIR_CANDIDATES = [
     r"%USERPROFILE%\.trae-cn",
 ]
 
-HELP_TEXT = """Trae CN 多账号启动台 · 单文件版
-=========================================================
+HELP_TEXT = """Trae CN 多开 · 使用说明
 
-【怎么启动这个工具】
-双击 TraeCN多开.pyw 就行。Windows 自带 Python 3 + tkinter 即可，
-零第三方依赖、不用装东西、不打包 exe、不写注册表、不碰任何登录凭据。
-想更省事：点「桌面快捷方式」，在桌面建一个入口，以后不用进这个文件夹。
+双击 TraeCN多开.pyw 就能开。Windows 自带 Python 3 就行，tkinter 也是自带的，
+不用装东西，不用管理员权限，也不碰你的登录凭据。
 
-【三步上手】
-1. 第 1 行「主实例（原账号 A）」= 你原来那个账号。选中点「启动」，
-   和双击桌面图标完全等价，不用重新登录。
-2. 点「新建实例」或「批量新建」加账号，编号从 account-2 开始。
-3. 选中新行点「启动」，在弹出的窗口里登录另一个账号；
-   或者点「全部启动」一次把主实例和所有隔离实例都拉起来。
+上手
+  顶部填一次 Trae CN.exe 的路径，点「自动探测」一般能自己找到。
+  第 1 行是你原来那个账号，点「启动」跟双击桌面图标一模一样，不用重新登录。
+  想加号就点「新建实例」或「批量新建」，选中新行点「启动」，
+  在弹出的窗口里登另一个账号。「全部启动」一次全拉起来，已经开着的不重复开。
 
-【原来的账号会丢吗】
-不会。账号 A 存在 Trae 自己的默认目录，本工具从不读写、改名或删除它，
-只新增 %LOCALAPPDATA%\\TraeCNProfiles\\account-N\\ 这些独立目录。
-主实例的「重置登录」「删除实例」被禁用，避免误伤你原有的设置、插件和工作区。
-想给主实例换号：在 Trae 窗口里退出登录 / 切换账号。
+原来的账号会不会没
+  不会。它在 Trae 自己的默认目录里，这工具从来没动过，也不会去动。
+  新增的只是 %LOCALAPPDATA%\\TraeCNProfiles\\account-N\\ 这些独立目录。
+  主实例的「重置登录」「删除实例」是禁用的，免得手滑把原来的设置、
+  插件和工作区搞没了。要给主实例换号，在 Trae 窗口里退出登录就行。
 
-【按钮都是干什么的】
-新建实例 / 批量新建   一次加 1 个或 1-30 个账号位；目录首次启动才创建
-启动 / 全部启动       主实例用 Trae CN.exe --new-window（不加参数）；
-                      隔离实例加 --user-data-dir=<独立目录>。已运行的不重复开
-停止                 按命令行精确匹配 PID 后 taskkill /T /F，不会误杀别的实例。
-                     停止主实例会二次确认，且不影响隔离实例
-刷新状态             后台线程查进程 + 统计目录占用，界面不卡
-编辑备注             双击表格行也行。名称、账号备注只是给你自己看的标签
-打开目录             隔离实例打开 account-N；主实例打开 Trae 默认目录
-重置登录             停止 → 目录改名成 .bak-时间戳 → 下次是全新登录态。
-                     不删数据、可回滚。主实例不适用
-删除实例             只从列表移除，目录原样保留。主实例不适用
-扫描已有目录         把之前命令行版建的 account-N 收进列表（启动时也会自动扫）
-浏览 / 自动探测      填 Trae CN.exe 路径；优先从运行中的 Trae 进程读
-桌面快捷方式         在桌面创建指向本文件的快捷方式，不改动本文件
-使用说明             就是当前这个窗口
-打开配置目录         打开 launcher.json / launcher.log 所在文件夹
+按钮
+  新建 / 批量新建   一次加 1 个或 1-30 个位置，目录第一次启动才建
+  启动 / 全部启动   主实例 = Trae CN.exe --new-window；隔离实例多一个 --user-data-dir
+  停止              按命令行对上 PID 再 taskkill，不会误杀别的实例；停主实例会问一句
+  刷新状态          后台查进程和目录大小，界面不卡
+  编辑备注          双击表格行也能改，只是给自己看的标签
+  打开目录          隔离实例开 account-N，主实例开 Trae 默认目录
+  重置登录          目录改名成 .bak-时间戳，不删数据，下次是全新登录态
+  删除实例          只从列表移除，目录留着
+  扫描已有目录      把之前手工建的 account-N 收进列表，启动时也会自动扫
+  桌面快捷方式      在桌面建个入口，不改动本文件
 
-【数据放在哪】
-%APPDATA%\\Trae CN\\              账号 A 的默认目录（位置随客户端版本变化）
-                                 Trae 自己管理，本工具只读不碰
-%LOCALAPPDATA%\\TraeCNProfiles\\
-  launcher.json                  实例清单 + exe 路径（只有文本标签，无 token）
-  launcher.log                   异常和刷新失败的日志
-  main-cwd\\                      主实例的工作目录
-  account-2\\、account-3\\...      各账号独立登录态
-  account-2.bak-...              重置登录时留下的备份
+东西放在哪
+  %APPDATA%\\Trae CN\\              账号 A 的默认目录，Trae 自己管，本工具不碰
+  %LOCALAPPDATA%\\TraeCNProfiles\\
+    launcher.json                  实例清单和 exe 路径，纯文本，没有 token
+    launcher.log                   出错时的堆栈
+    main-cwd\\                      主实例的工作目录
+    account-2\\、account-3\\...      各账号自己的登录态
+    account-2.bak-...              重置时留下的备份
+  配置目录固定，重装或升级这个工具不会丢列表。备份就拷走整个文件夹。
 
-配置目录固定，重装或升级本工具不会丢账号列表；要备份就拷走整个
-TraeCNProfiles 文件夹。
+有个坑得记住
+  签到按设备算，跟账号无关。TRAE CN 3.4.4 有人真机测过：
+  --user-data-dir 能分开登录态，设备号却还是同一个，第二个号当天点签到
+  会看到「本设备每日已签到」。用量、模型、请求是按账号独立的，不受影响。
+  依据：https://github.com/magpie-community/plugins/issues/436
+  所以挂几个号各跑各的任务没问题，指望多开领多份签到积分是白折腾。
 
-【必须记住的限制】
-同一台机器多账号同时在线可行，但签到按设备算。
-TRAE CN 3.4.4 真机实测：--user-data-dir 能分开登录态，设备号却不变，
-第二个账号当天点签到会看到「本设备每日已签到」。
-正常用量、模型、请求按账号独立，不受影响。
-依据：https://github.com/magpie-community/plugins/issues/436
-所以挂多个号跑任务没问题，想靠多开领多份签到积分是白折腾。
+状态怎么认
+  WMI 查 Trae 进程命令行：隔离实例带 --user-data-dir=<ROOT>\\account-N，
+  主实例不带这个参数。Chromium 子进程带 --type=，语言服务进程带 --node-ipc，
+  这两种都要排除，不然窗口关了之后残留的进程会让「启动」点了没反应。
 
-【状态是怎么认出来的】
-工具用 WMI 查 Trae 进程命令行：
-- 隔离实例：命令行带 --user-data-dir=<ROOT_DIR>\\account-N
-- 主实例：不带该参数（或指向 Trae 默认目录）的 Trae 主进程
-Chromium 子进程带 --type=，VS Code 语言服务进程带 --node-ipc，
-两者都会被排除，否则关窗后残留进程会让「启动」变成空操作。
+出问题了
+  双击没反应      看看 .pyw 是不是还关联着 pythonw.exe；或者在这目录按住 Shift
+                   右键开 PowerShell 跑 python TraeCN多开.pyw，报错会直接显示
+  找不到 exe      点「浏览...」手动选 Trae CN.exe
+  状态不对        点「刷新状态」，刚启动的进程要一两秒才登记
+  停止没反应      那个窗口不是本工具开的，命令行里没有对应参数，工具管不到
+  占用算得慢      几个 GB 的目录遍历会慢，是后台线程，等一下就好
+  界面报错        看 %LOCALAPPDATA%\\TraeCNProfiles\\launcher.log
 
-【排错】
-双击没反应          检查 .pyw 是否关联到 pythonw.exe；或在此目录按住 Shift
-                    右键开 PowerShell 跑 pythonw TraeCN多开.pyw，
-                    报错会写进 launcher.log 并弹窗
-提示找不到 exe      点「浏览...」选中 Trae CN.exe 完整路径
-状态显示不准        点「刷新状态」；刚启动的进程要一两秒才登记
-停止没反应          说明这个窗口不是本工具启动的，WMI 查不到对应参数；
-                    手动开的普通 Trae 窗口工具管不到
-占用算不出来       目录几个 GB 时遍历会慢，等一下，是后台线程
-界面报异常          看 launcher.log，里面有完整堆栈
+这个工具不做什么
+  不读 storage.json，不解密凭据，不改机器码，不写注册表，不联网。
+  登录全走官方客户端自己的界面。账号备注只是文本，不存 token / 密码 / Cookie。
+  多账号本身踩服务条款灰线，账号异常自己担着。
 
-【安全边界】
-- 只读进程命令行和目录大小；不读 storage.json、不解密 auth blob、
-  不改机器码、不写注册表。
-- 账号备注是纯文本标签，不存 token / 密码 / Cookie。
-- 登录完全走官方客户端自己的登录界面。
-- 重置登录用「改名备份」而不是删除，避免不可逆数据丢失。
-- Trae 的 Crashpad 会往工作目录写 debug.log，本工具已把工作目录设成
-  各实例自己的目录，不会堆在启动器旁边。
-- 多账号薅额度本身踩服务条款灰线，账号异常风险自负。
-
-【关于这个单文件】
-程序、使用说明、桌面快捷方式创建器全部在这一个 .pyw 里。
-运行时不需要 README.md / LICENSE / .gitignore，也不需要任何第三方库；
-把这一个文件单独拷到任何 Windows 机器上都能直接用。
+  程序、说明、快捷方式创建器都在这一个 .pyw 里。把这一个文件单独拷到
+  任何 Windows 机器上都能直接用，README / LICENSE 那些运行时不需要。
 """
 
 
@@ -181,7 +144,6 @@ def log(msg):
 
 
 def fatal(msg):
-    """A .pyw has no console, so surface startup errors via a native dialog."""
     log("FATAL:\n" + msg)
     try:
         import ctypes
@@ -200,7 +162,6 @@ def powershell_text(command, timeout=12):
 
 
 def ps_quote(value):
-    """Single-quoted PowerShell literal (doubles embedded single quotes)."""
     return "'" + str(value).replace("'", "''") + "'"
 
 
@@ -243,12 +204,11 @@ def list_processes():
 
 
 def extract_udd(cmdline):
-    # Windows quotes an argument containing spaces in several different ways,
-    # and real TRAE CN child processes use both of the first two forms.
+    # 路径带空格时引号写法不统一，三种都得认
     patterns = [
-        r'--user-data-dir="([^"]+)"',   # --user-data-dir="C:\path with spaces\x"
-        r'"--user-data-dir=([^"]+)"',   # "--user-data-dir=C:\path with spaces\x"
-        r"--user-data-dir=(\S+)",       # bare, no spaces in the path
+        r'--user-data-dir="([^"]+)"',
+        r'"--user-data-dir=([^"]+)"',
+        r"--user-data-dir=(\S+)",
     ]
     for pattern in patterns:
         m = re.search(pattern, cmdline, re.I)
@@ -258,13 +218,7 @@ def extract_udd(cmdline):
 
 
 def is_electron_main(cmdline):
-    """Only the real app main process, not Electron/VS Code helper processes.
-
-    Chromium children carry --type=renderer|gpu|utility|crashpad-handler.
-    VS Code extension/language servers have no --type= but do carry --node-ipc
-    (observed on TRAE CN: jsonServerMain spawned as Trae CN.exe). Counting those
-    as a main instance would make "start" a no-op after the real window closes.
-    """
+    # 语言服务进程没有 --type=，但有 --node-ipc；认错了关窗后启动会失灵
     low = cmdline.lower()
     return "--type=" not in low and "--node-ipc" not in low
 
@@ -288,13 +242,7 @@ def main_instance():
 
 
 def pids_for(inst, procs):
-    """Main instance = the Trae process launched without our --user-data-dir.
-
-    Isolated instances match their own directory. The main instance must be
-    identified from the main process only: Chromium children of the default
-    window also receive a --user-data-dir (the default one), and language
-    servers have neither --type= nor that argument but are not the app.
-    """
+    # 主实例只认不带隔离目录的真主进程
     if inst.get("main"):
         root = os.path.normcase(os.path.normpath(ROOT_DIR)) + os.sep
         found = []
@@ -350,8 +298,7 @@ def load_config():
     except Exception:
         log("load_config:\n" + traceback.format_exc())
 
-    # Main instance is a permanent first row. Rebuild on every load so configs
-    # written by the older multi-file version migrate, keeping the user's labels.
+    # 主实例固定在第一行，顺手把旧配置里的备注接过来
     main = main_instance()
     for inst in items:
         if inst["id"] == MAIN_ID:
@@ -372,7 +319,7 @@ def save_config(cfg):
 class App:
     def __init__(self, root):
         self.root = root
-        self.root.title(APP_TITLE + " · 单文件版")
+        self.root.title(APP_TITLE)
         self.root.geometry("1000x670")
         self.root.minsize(900, 560)
         self.root.configure(bg=BG)
@@ -418,23 +365,18 @@ class App:
     def build_ui(self):
         header = tk.Frame(self.root, bg=BG)
         header.pack(fill="x", padx=16, pady=(14, 6))
-        title_row = tk.Frame(header, bg=BG)
-        title_row.pack(anchor="w")
-        tk.Label(title_row, text=APP_TITLE, bg=BG, fg=FG,
-                 font=("Microsoft YaHei", 15, "bold")).pack(side="left")
-        tk.Label(title_row, text="单文件版 · 双击即用", bg=MUTED, fg=ACCENT,
-                 font=("Microsoft YaHei", 9), padx=8, pady=2).pack(side="left", padx=12)
-        tk.Label(header,
-                 text="第 1 行就是你原来的账号 A（和双击桌面图标完全等价）；下面各行是额外的隔离实例。",
+        tk.Label(header, text=APP_TITLE, bg=BG, fg=FG,
+                 font=("Microsoft YaHei", 15, "bold")).pack(anchor="w")
+        tk.Label(header, text="第 1 行是原来的账号，下面都是新加的隔离实例。",
                  bg=BG, fg=GREY, font=FONT).pack(anchor="w", pady=(4, 0))
 
         warn = tk.Frame(self.root, bg=WARN_BG, padx=12, pady=8)
         warn.pack(fill="x", padx=16, pady=(4, 10))
         tk.Label(warn,
-                 text="签到按设备算：同一台机器当天只有第一个账号能领。多开解决的是「同时在线」，不增加签到次数。",
+                 text="签到按设备算，一天只有第一个号能领。多开只解决同时在线。",
                  bg=WARN_BG, fg=WARN_FG, font=FONT, wraplength=940,
                  justify="left").pack(anchor="w")
-        tk.Label(warn, text="账号列只是备注标签，本工具不读取、不保存任何登录凭据。",
+        tk.Label(warn, text="备注只是给自己看的标签，不存任何登录信息。",
                  bg=WARN_BG, fg=GREY, font=FONT).pack(anchor="w", pady=(3, 0))
 
         pathbar = tk.Frame(self.root, bg=BG)
@@ -519,13 +461,12 @@ class App:
         else:
             messagebox.showwarning(
                 APP_TITLE,
-                "没找到 Trae CN.exe。\n\n原因：客户端没在运行，且常见安装目录里也没有。\n"
-                "点「浏览...」手动选中它的完整路径。",
+                "没找到 Trae CN.exe。客户端没开着的话探测不到，点「浏览...」自己选一下。",
             )
 
     def show_help(self):
         dlg = tk.Toplevel(self.root)
-        dlg.title("使用说明 · 单文件版")
+        dlg.title("使用说明")
         dlg.geometry("780x580")
         dlg.configure(bg=BG)
         dlg.transient(self.root)
@@ -551,7 +492,6 @@ class App:
         os.startfile(ROOT_DIR)
 
     def make_shortcut(self):
-        """Create a desktop .lnk pointing at this very file (optional)."""
         script = os.path.abspath(sys.argv[0])
         if not os.path.isfile(script):
             messagebox.showerror(APP_TITLE, "找不到自身文件：\n" + script)
@@ -592,7 +532,7 @@ class App:
             if r.returncode != 0:
                 raise RuntimeError((r.stderr or r.stdout or "PowerShell 没给出原因").strip())
         except Exception as e:
-            detail = "创建桌面快捷方式失败：%r\n\n目标：%s\n\n详情也写进了日志 %s" % (e, lnk, LOG_PATH)
+            detail = "快捷方式没建成：%r\n\n%s" % (e, lnk)
             log("make_shortcut:\n" + traceback.format_exc())
             messagebox.showerror(APP_TITLE, detail)
             return
@@ -622,7 +562,7 @@ class App:
     def selected_inst(self):
         sel = self.tree.selection()
         if not sel:
-            messagebox.showinfo(APP_TITLE, "先在列表里选中一个实例。")
+            messagebox.showinfo(APP_TITLE, "先选中一行。")
             return None
         for inst in self.cfg["instances"]:
             if str(inst["id"]) == sel[0]:
@@ -630,7 +570,6 @@ class App:
         return None
 
     def scan_existing(self):
-        """Pick up account-N folders created earlier by the .cmd script."""
         try:
             names = os.listdir(ROOT_DIR)
         except OSError:
@@ -663,9 +602,9 @@ class App:
         added = self.scan_existing()
         self.reload_tree()
         if added:
-            self.set_status("扫描完毕，新增 %s 个已有目录。" % added)
+            self.set_status("扫到 %s 个新目录。" % added)
         else:
-            self.set_status("扫描完毕，没有发现新的 account-N 目录。")
+            self.set_status("没扫到新的 account-N 目录。")
 
     def next_id(self):
         used = {i["id"] for i in self.cfg["instances"]}
@@ -722,7 +661,7 @@ class App:
             row=1, column=0, padx=(16, 10), pady=(0, 8), sticky="w")
         tk.Entry(dlg, textvariable=acc_var, width=36, font=FONT, bg="#FFFFFF",
                  fg=FG, relief="solid", bd=1).grid(row=1, column=1, padx=(0, 16), pady=(0, 8))
-        tk.Label(dlg, text="只是给自己看的标签，例如「工作号」「小号 3」。不存任何凭据。",
+        tk.Label(dlg, text="只是给自己看的标签，比如「工作号」「小号 3」。",
                  bg=BG, fg=GREY, font=FONT).grid(row=2, column=0, columnspan=2,
                                                 padx=16, pady=(0, 12), sticky="w")
 
@@ -745,26 +684,23 @@ class App:
         if not exe or not os.path.isfile(exe):
             messagebox.showerror(
                 APP_TITLE,
-                "启动不了：找不到 Trae CN.exe。\n\n当前路径：%s\n\n"
-                "点「自动探测」或「浏览...」填对路径再试。" % (exe or "(空)"),
+                "找不到 Trae CN.exe：%s\n点「自动探测」或「浏览...」填一下。" % (exe or "(空)"),
             )
             return False
         if pids_for(inst, self.procs):
             return None
         try:
-            # Trae's crashpad writes debug.log into its working directory.
-            # Keep each instance's log inside its own profile folder instead.
+            # Crashpad 会往工作目录写 debug.log，让每个实例写进自己的目录
             if inst.get("main"):
                 cwd = os.path.join(ROOT_DIR, "main-cwd")
                 os.makedirs(cwd, exist_ok=True)
-                # No --user-data-dir at all: exactly what the desktop icon does.
                 subprocess.Popen([exe, "--new-window"], cwd=cwd)
             else:
                 os.makedirs(inst["dir"], exist_ok=True)
                 subprocess.Popen([exe, "--user-data-dir=" + inst["dir"], "--new-window"],
                                  cwd=inst["dir"])
         except Exception as e:
-            messagebox.showerror(APP_TITLE, "启动失败：%r\n\n详情也写进了日志 %s" % (e, LOG_PATH))
+            messagebox.showerror(APP_TITLE, "启动失败：%r" % e)
             log("start_instance:\n" + traceback.format_exc())
             return False
         return True
@@ -776,18 +712,18 @@ class App:
         result = self.start_instance(inst)
         if result is True:
             if inst.get("main"):
-                self.set_status("已启动主实例（原账号 A），和双击桌面图标一样，不用重新登录。")
+                self.set_status("主实例已启动，不用重新登录。")
             else:
                 self.set_status("已启动 #%s，等窗口出来后登录账号。" % inst["id"])
         elif result is None:
-            self.set_status("#%s 已经在运行了，没重复启动。" % inst["id"])
+            self.set_status("#%s 已经开着了。" % inst["id"])
         self.root.after(1500, self.refresh_async)
 
     def start_all(self):
         if len(self.cfg["instances"]) <= 1:
             messagebox.showinfo(
                 APP_TITLE,
-                "现在只有主实例（原账号 A）。\n\n要同时登录更多账号，先点「新建实例」或「批量新建」。",
+                "现在只有主实例。要加号先点「新建实例」或「批量新建」。",
             )
             return
         started, skipped, failed = 0, 0, 0
@@ -799,7 +735,7 @@ class App:
                 skipped += 1
             else:
                 failed += 1
-        self.set_status("全部启动（含主实例）：新启 %s 个 / 已在运行 %s 个 / 失败 %s 个。" %
+        self.set_status("全部启动：新开 %s 个，已在运行 %s 个，失败 %s 个。" %
                         (started, skipped, failed))
         self.root.after(1800, self.refresh_async)
 
@@ -807,15 +743,14 @@ class App:
         if inst.get("main") and not quiet:
             if not messagebox.askyesno(
                 APP_TITLE,
-                "确定关闭主实例（原账号 A）？\n\n"
-                "这会关掉所有不带 --user-data-dir 的 Trae 窗口，包括你平时用桌面图标打开的那个。\n"
+                "关掉主实例？\n\n平时用桌面图标开的 Trae 窗口也会一起关掉，"
                 "下面那些隔离实例不受影响。",
             ):
                 return False
         pids = pids_for(inst, self.procs)
         if not pids:
             if not quiet:
-                messagebox.showinfo(APP_TITLE, "#%s 没有对应的运行进程，不用停。" % inst["id"])
+                messagebox.showinfo(APP_TITLE, "#%s 没在运行。" % inst["id"])
             return False
         for pid in pids:
             subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
@@ -840,9 +775,9 @@ class App:
             if not path:
                 messagebox.showinfo(
                     APP_TITLE,
-                    "没找到默认配置目录。不同版本位置不一样，常见位置有：\n\n"
+                    "没找到默认配置目录，常见的几个位置都试过了：\n"
                     + "\n".join(os.path.expandvars(p) for p in DEFAULT_DIR_CANDIDATES)
-                    + "\n\n这不影响使用：主实例的登录态一直由 Trae 自己管理。",
+                    + "\n\n不影响使用，登录态一直由 Trae 自己管。",
                 )
                 return
             os.startfile(path)
@@ -858,15 +793,14 @@ class App:
         if inst.get("main"):
             messagebox.showinfo(
                 APP_TITLE,
-                "主实例不能在这里重置。\n\n"
-                "它的默认目录里还有你原有的设置、插件和工作区，本工具不会去改名或删除它。\n"
-                "想换号：在 Trae 窗口里退出登录 / 切换账号即可。",
+                "主实例不能重置。\n\n那个目录里还有你原来的设置、插件和工作区，"
+                "不想动它。要换号在 Trae 窗口里退出登录就行。",
             )
             return
         if not messagebox.askyesno(
             APP_TITLE,
-            "重置「%s」的登录？\n\n配置目录会被改名成备份，不会删除：\n%s\n\n"
-            "下次启动就是全新的登录态，需要重新登录。" % (inst["name"], inst["dir"]),
+            "重置「%s」？\n\n目录会改名成备份，不会删：\n%s\n\n下次启动要重新登录。"
+            % (inst["name"], inst["dir"]),
         ):
             return
         self.stop_instance(inst, quiet=True)
@@ -893,13 +827,12 @@ class App:
         if inst.get("main"):
             messagebox.showinfo(
                 APP_TITLE,
-                "主实例是固定的第 1 行，不能从列表移除。\n\n"
-                "它只是给你一个「一键打开原账号」的入口，删掉它也不会改变 Trae 本身。",
+                "主实例是固定第一行，删不掉。\n\n它只是个一键打开原账号的入口。",
             )
             return
         if not messagebox.askyesno(
             APP_TITLE,
-            "从列表移除「%s」？\n\n配置目录会保留，不会删数据：\n%s" % (inst["name"], inst["dir"]),
+            "把「%s」从列表移除？\n\n目录会留着，不删数据：\n%s" % (inst["name"], inst["dir"]),
         ):
             return
         self.cfg["instances"] = [i for i in self.cfg["instances"] if i["id"] != inst["id"]]
@@ -935,20 +868,20 @@ class App:
         self.refreshing = False
         if kind == "err":
             log("refresh:\n" + err)
-            self.set_status("刷新失败，详情见日志 " + LOG_PATH)
+            self.set_status("刷新失败，看日志 " + LOG_PATH)
             return
         self.procs = procs
         self.sizes = sizes
         self.reload_tree()
         running = sum(1 for inst in self.cfg["instances"] if pids_for(inst, self.procs))
         extra = len(self.cfg["instances"]) - 1
-        self.set_status("主实例 + %s 个隔离实例 · 运行中 %s 个 · 刷新于 %s" %
+        self.set_status("%s 个隔离实例，%s 个在运行（%s）" %
                         (extra, running, datetime.now().strftime("%H:%M:%S")))
 
     def on_exception(self, exc_type, exc_value, exc_tb):
         log("unhandled:\n" + "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
         try:
-            messagebox.showerror(APP_TITLE, "出错了：%s\n\n详情见 %s" % (exc_value, LOG_PATH))
+            messagebox.showerror(APP_TITLE, "出错了：%s\n\n日志在 %s" % (exc_value, LOG_PATH))
         except Exception:
             pass
 
