@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # CWJ-NUB · https://github.com/CWJ-NUB/trae-cn-multibox
-"""Trae CN 多开启动台。双击运行，只用标准库。"""
+"""Trae CN 多开启动台"""
 import base64
 import json
 import os
